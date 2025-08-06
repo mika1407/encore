@@ -1,4 +1,4 @@
-import { api } from "encore.dev/api";
+import { api, APIError } from "encore.dev/api";
 import { SQLDatabase } from "encore.dev/storage/sqldb";
 import { randomBytes } from "node:crypto";
 
@@ -22,5 +22,18 @@ async ({url}: UrlParams): Promise<UrlResponse> => {
   const id = randomBytes(6).toString("base64url");
   await db.exec`INSERT INTO url (id, original_url) VALUES (${id}, ${url})`;
   return { id, url };
+}
+);
+
+
+export const getShortenedUrl = api({
+    method: "GET",
+    path: "/url/:id",
+    expose: true,
+},
+async ({ id }: { id: string }): Promise<UrlResponse> => {
+  const row = await db.queryRow`SELECT original_url FROM url WHERE id = ${id}`;
+  if (!row) throw APIError.notFound(`URL with id ${id} not found`);
+  return { id, url: row.original_url };
 }
 );
